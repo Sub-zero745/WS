@@ -13,6 +13,12 @@ const server = net.createServer(client => {
   });
 
   // Enviar HTTP 101 al cliente inmediatamente
+  const banner3 = [
+    'HTTP/1.1 100 Continue',
+    'Connection: keep-alive',
+    '\r\n'
+  ].join('\r\n');
+  
   const banner2 = [
     'HTTP/1.1 200 OK',
     'Content-Type: text/plain; charset=UTF-8',
@@ -27,7 +33,7 @@ const server = net.createServer(client => {
     'Connection: Upgrade',
     '\r\n'
   ].join('\r\;n')
-  client.write(banner2);
+  client.write(banner3);
   console.log('📤 Enviado HTTP 101 al cliente');
 
   let packetCount = 0;
