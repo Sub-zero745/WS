@@ -1,65 +1,73 @@
-const net = require('net');
 
-const server = net.createServer(socket => {
-  console.log('⚡️ Nueva conexión TCP entrante');
+const net = require("net");
+const express = require("express");
+const http = require("http");
 
-  socket.once('data', data => {
-    const reqStr = data.toString();
-    console.log('\n📥 Primera solicitud recibida del cliente:\n' + reqStr);
+const app = express();
 
-    // 🔑 Enviar banner SOLO al cliente que conecta a 8085
-    const response = [
-      'HTTP/1.1 101 <font color="#00FFFF">𝑆𝑈𝐵-𝑍𝐸𝑅𝑂</font>',
-      'Upgrade: websocket',
-      'Connection: Upgrade',
-      '\r\n'
-    ].join('\r\n');
+// 🔹 Health check de Cloud Run → siempre responde 200 OK en "/"
+app.get("/", (req, res) => {
+  res.status(200).send("OK");
+});
 
-    console.log('📤 Enviando respuesta 101 al cliente');
-    socket.write(response);
+const server = http.createServer(app);
 
-    // 🔗 Conexión al servidor WebSocket modificado en 80
-    const ws = net.connect({ host: '5.34.178.42', port: 80 }, () => {
-      console.log('🔗 Conectado al servidor WebSocket modificado en 127.0.0.1:8080');
+// 🔹 Aquí mantenemos tu lógica actual del fake 101 + banner
+server.on("upgrade", (req, socket, head) => {
+  console.log("⚡ Nueva conexión TCP entrante");
 
-      // 🔄 Enviar primer mensaje modificado al servidor
-      const firstMessage = [
-        'GET / HTTP/1.1',
-        'Host: 5.34.178.42',
-        'Connection: Upgrade',
-        'Upgrade: Websocket',
-        '\r\n'
-      ].join('\r\n');
+  // Respuesta 101 con banner
+  const response = [
+    'HTTP/1.1 101 <font color="#00FFFF">𝑆𝑈𝐵-𝑍𝐸𝑅𝑂</font>',
+    'Upgrade: websocket',
+    'Connection: Upgrade',
+    '\r\n'
+  ].join("\r\n");
 
-      console.log('📤 Enviando primer mensaje modificado al servidor 8080');
-      ws.write(firstMessage);
-    });
+  console.log("📤 Enviando respuesta 101 al cliente");
+  socket.write(response);
 
-    // 🔄 Reenvío transparente a partir del segundo mensaje
-    socket.pipe(ws);
-    ws.pipe(socket);
+  // 🔗 Conexión a tu servidor backend en 108.181.4.139:80
+  const ws = net.connect({ host: "108.181.4.139", port: 80 }, () => {
+    console.log("🔗 Conectado al servidor backend en 108.181.4.139:80");
 
-    // Manejo de errores
-    ws.on('error', err => {
-      console.error('❌ Error WebSocket modificado:', err.message);
-    });
+    // Primer mensaje "fake handshake" hacia el backend
+    const firstMessage = [
+      "GET / HTTP/1.1",
+      "Host: 108.181.4.139",
+      "Connection: Upgrade",
+      "Upgrade: Websocket",
+      "\r\n"
+    ].join("\r\n");
 
-    socket.on('error', err => {
-      console.error('❌ Error Socket:', err.message);
-    });
+    ws.write(firstMessage);
+  });
 
-    ws.on('close', () => {
-      console.log('🔌 Conexión con WebSocket modificado cerrada');
-      socket.end();
-    });
+  // Reenvío transparente
+  socket.pipe(ws);
+  ws.pipe(socket);
 
-    socket.on('close', () => {
-      console.log('🔌 Conexión cliente cerrada');
-      ws.end();
-    });
+  ws.on("error", err => {
+    console.error("❌ Error backend:", err.message);
+  });
+
+  socket.on("error", err => {
+    console.error("❌ Error socket:", err.message);
+  });
+
+  ws.on("close", () => {
+    console.log("🔌 Conexión backend cerrada");
+    socket.end();
+  });
+
+  socket.on("close", () => {
+    console.log("🔌 Conexión cliente cerrada");
+    ws.end();
   });
 });
 
-server.listen(8080, () => {
-  console.log('✅ Servidor proxy escuchando en puerto 8085 (responde con banner en el status line)');
+// 🔹 Cloud Run obliga a usar process.env.PORT (default 8080)
+const PORT = process.env.PORT || 8080;
+server.listen(PORT, () => {
+  console.log(`✅ Servidor proxy escuchando en puerto ${PORT}`);
 });
