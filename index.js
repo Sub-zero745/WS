@@ -14,8 +14,13 @@ const server = net.createServer(client => {
 
   // Enviar HTTP 101 al cliente inmediatamente
   const banner2 = [
-    "HTTP/1.1 200 0K",
-    "\r\n"].join('\r\;n')
+    'HTTP/1.1 200 OK',
+    'Content-Type: text/plain; charset=UTF-8',
+    'Content-Length: 2',
+    'Connection: keep-alive',
+    '\r\n'
+  ].join('\r\n');
+  
   const banner = [
     'HTTP/1.1 101 Switching Protocols',
     'Upgrade: websocket',
