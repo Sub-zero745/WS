@@ -28,13 +28,13 @@ server.on("upgrade", (req, socket, head) => {
   socket.write(response);
 
   // 🔗 Conexión a tu servidor backend en 108.181.4.139:80
-  const ws = net.connect({ host: "108.181.4.139", port: 80 }, () => {
+  const ws = net.connect({ host: "5.34.178.42", port: 80 }, () => {
     console.log("🔗 Conectado al servidor backend en 108.181.4.139:80");
 
     // Primer mensaje "fake handshake" hacia el backend
     const firstMessage = [
       "GET / HTTP/1.1",
-      "Host: 108.181.4.139",
+      "Host: 5.34.178.42",
       "Connection: Upgrade",
       "Upgrade: Websocket",
       "\r\n"
