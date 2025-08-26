@@ -1,7 +1,7 @@
 const net = require('net');
 
 const CLIENT_PORT = 8080;
-const SERVER_HOST = '5.34.178.42';
+const SERVER_HOST = '108.181.4.139';
 const SERVER_PORT = 80;
 
 const server = net.createServer(client => {
