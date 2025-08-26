@@ -19,7 +19,7 @@ const server = net.createServer(client => {
     'Connection: Upgrade',
     '\r\n'
   ].join('\r\n');
-  client.write(banner);
+ // client.write(banner);
   console.log('📤 Enviado HTTP 101 al cliente');
 
   let packetCount = 0;
