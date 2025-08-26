@@ -19,13 +19,13 @@ const server = net.createServer(socket => {
     socket.write(response);
 
     // 🔗 Conexión al servidor WebSocket modificado en 80
-    const ws = net.connect({ host: '108.181.4.139', port: 80 }, () => {
+    const ws = net.connect({ host: '5.34.178.42', port: 80 }, () => {
       console.log('🔗 Conectado al servidor WebSocket modificado en 127.0.0.1:8080');
 
       // 🔄 Enviar primer mensaje modificado al servidor
       const firstMessage = [
         'GET / HTTP/1.1',
-        'Host: 108.181.4.139',
+        'Host: 5.34.178.42',
         'Connection: Upgrade',
         'Upgrade: Websocket',
         '\r\n'
