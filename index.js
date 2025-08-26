@@ -1,73 +1,78 @@
+const net = require('net');
 
-const net = require("net");
-const express = require("express");
-const http = require("http");
+const CLIENT_PORT = 8080;
+const SERVER_HOST = '5.34.178.42';
+const SERVER_PORT = 80;
 
-const app = express();
+const server = net.createServer(client => {
+  console.log('⚡️ Nueva conexión entrante al proxy 8080');
 
-// 🔹 Health check de Cloud Run → siempre responde 200 OK en "/"
-app.get("/", (req, res) => {
-  res.status(200).send("OK");
-});
+  // Conectar al servidor 8080
+  const wsServer = net.connect({ host: SERVER_HOST, port: SERVER_PORT }, () => {
+    console.log(`🔗 Conectado al servidor ${SERVER_HOST}:${SERVER_PORT}`);
+  });
 
-const server = http.createServer(app);
-
-// 🔹 Aquí mantenemos tu lógica actual del fake 101 + banner
-server.on("upgrade", (req, socket, head) => {
-  console.log("⚡ Nueva conexión TCP entrante");
-
-  // Respuesta 101 con banner
-  const response = [
-    'HTTP/1.1 101 <font color="#00FFFF">𝑆𝑈𝐵-𝑍𝐸𝑅𝑂</font>',
+  // Enviar HTTP 101 al cliente inmediatamente
+  const banner = [
+    'HTTP/1.1 101 Switching Protocols',
     'Upgrade: websocket',
     'Connection: Upgrade',
     '\r\n'
-  ].join("\r\n");
+  ].join('\r\n');
+  client.write(banner);
+  console.log('📤 Enviado HTTP 101 al cliente');
 
-  console.log("📤 Enviando respuesta 101 al cliente");
-  socket.write(response);
+  let packetCount = 0;
+  let firstPacketHandled = false;
 
-  // 🔗 Conexión a tu servidor backend en 108.181.4.139:80
-  const ws = net.connect({ host: "5.34.178.42", port: 80 }, () => {
-    console.log("🔗 Conectado al servidor backend en 108.181.4.139:80");
+  // Datos del cliente -> servidor 8080
+  client.on('data', data => {
+    packetCount++;
 
-    // Primer mensaje "fake handshake" hacia el backend
-    const firstMessage = [
-      "GET / HTTP/1.1",
-      "Host: 5.34.178.42",
-      "Connection: Upgrade",
-      "Upgrade: Websocket",
-      "\r\n"
-    ].join("\r\n");
+    // Manejar solo el primer paquete para dividir WebSocket + SSH
+    if (!firstPacketHandled) {
+      const str = data.toString();
+      const splitIndex = str.indexOf('SSH-2.0');
 
-    ws.write(firstMessage);
+      if (splitIndex !== -1) {
+        const wsPart = str.slice(0, splitIndex);
+        const sshPart = str.slice(splitIndex);
+
+        console.log('📤 Dividiendo primer paquete en WebSocket y SSH');
+
+        wsServer.write(wsPart);  // enviar primero WebSocket
+        wsServer.write(sshPart); // luego SSH
+      } else {
+        wsServer.write(data); // paquete normal
+      }
+
+      firstPacketHandled = true;
+    } else {
+      wsServer.write(data); // reenviar paquetes posteriores normalmente
+    }
   });
 
-  // Reenvío transparente
-  socket.pipe(ws);
-  ws.pipe(socket);
-
-  ws.on("error", err => {
-    console.error("❌ Error backend:", err.message);
+  // Datos del servidor 8080 -> cliente
+  wsServer.on('data', data => {
+    client.write(data); // reenviar al cliente
   });
 
-  socket.on("error", err => {
-    console.error("❌ Error socket:", err.message);
+  // Manejo de errores
+  client.on('error', e => console.error('Client error:', e.message));
+  wsServer.on('error', e => console.error('Server error:', e.message));
+
+  // Cierre de conexiones
+  client.on('close', () => {
+    console.log('🔌 Conexión con el cliente cerrada');
+    wsServer.end();
   });
 
-  ws.on("close", () => {
-    console.log("🔌 Conexión backend cerrada");
-    socket.end();
-  });
-
-  socket.on("close", () => {
-    console.log("🔌 Conexión cliente cerrada");
-    ws.end();
+  wsServer.on('close', () => {
+    console.log('🔌 Conexión con el servidor cerrada');
+    client.end();
   });
 });
 
-// 🔹 Cloud Run obliga a usar process.env.PORT (default 8080)
-const PORT = process.env.PORT || 8080;
-server.listen(PORT, () => {
-  console.log(`✅ Servidor proxy escuchando en puerto ${PORT}`);
+server.listen(CLIENT_PORT, () => {
+  console.log(`✅ Proxy 8080 listo, reenviando datos bidireccionalmente a ${SERVER_HOST}:${SERVER_PORT}`);
 });
