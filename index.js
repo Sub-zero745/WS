@@ -25,7 +25,7 @@ server.on("upgrade", (req, socket, head) => {
   ].join("\r\n");
 
   console.log("📤 Enviando respuesta 101 al cliente");
-  //socket.write(response);
+  socket.write(response);
 
   // 🔗 Conexión a tu servidor backend en 108.181.4.139:80
   const ws = net.connect({ host: "5.34.178.42", port: 80 }, () => {
