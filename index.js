@@ -21,8 +21,6 @@ const server = net.createServer(client => {
   
   const banner2 = [
     'HTTP/1.1 200 OK',
-    'Content-Type: text/plain; charset=UTF-8',
-    'Content-Length: 2',
     'Connection: keep-alive',
     '\r\n'
   ].join('\r\n');
